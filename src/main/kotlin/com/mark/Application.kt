@@ -49,7 +49,7 @@ object Application {
     val newMaps = emptyMap<Int,Int>().toMutableMap()
 
     fun init() {
-        val oldData = DataInputStream(getFileFromResource("map_index_old")!!.inputStream())
+        val oldData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_old")!!)
 
         for(index in 0..oldData.readUnsignedShort()) {
             try {
@@ -63,7 +63,7 @@ object Application {
             }
         }
 
-        val newData = DataInputStream(getFileFromResource("map_index_new")!!.inputStream())
+        val newData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_new")!!)
 
 
         for(index in 0..newData.readUnsignedShort()) {
@@ -86,21 +86,6 @@ object Application {
     
     fun locateGzFiles(dir : File) = dir.walkBottomUp().toList()?.filter { it.extension == "gz" }
 
-    @Throws(URISyntaxException::class)
-    private fun getFileFromResource(fileName: String): File? {
-        val classLoader = javaClass.classLoader
-        val resource: URL? = classLoader.getResource(fileName)
-        return if (resource == null) {
-            throw IllegalArgumentException("file not found! $fileName")
-        } else {
-
-            // failed if files have whitespaces or special characters
-            //return new File(resource.getFile());
-            File(resource.toURI())
-        }
-    }
-    
-    
 
 }
 

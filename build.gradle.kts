@@ -5,8 +5,8 @@ plugins {
     application
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+group = "com.mark"
+version = "1.0"
 
 repositories {
     mavenCentral()
@@ -26,4 +26,21 @@ tasks.withType<KotlinCompile> {
 
 application {
     mainClass.set("MainKt")
+}
+
+tasks {
+
+    jar {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        manifest {
+            attributes["Implementation-Title"] = project.name
+            attributes["Implementation-Version"] = "${project.version}"
+            attributes["Main-Class"] = "com.mark.ApplicationKt"
+        }
+
+        from(configurations.runtimeClasspath.get().files.map { if (it.isDirectory) it else zipTree(it) })
+
+    }
+
 }
