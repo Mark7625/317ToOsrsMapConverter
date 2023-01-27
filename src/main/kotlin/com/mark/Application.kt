@@ -26,8 +26,6 @@ package com.mark
 
 import java.io.DataInputStream
 import java.io.File
-import java.net.URISyntaxException
-import java.net.URL
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
 
@@ -42,11 +40,11 @@ object Application {
     val logs = emptyMap<Int,Logging>().toMutableMap()
 
 
-    val regionToFilesOLD = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
-    val regionToFilesNEW = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
+    val mapIdsOLD = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
+    val mapIdsNew = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
 
-    val oldMaps = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
-    val newMaps = emptyMap<Int,Int>().toMutableMap()
+    val oldMapIds = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
+    val newMapIds = emptyMap<Int,Int>().toMutableMap()
 
     fun init() {
         val oldData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_old")!!)
@@ -56,8 +54,8 @@ object Application {
                 val area = oldData.readUnsignedShort()
                 val objects = oldData.readUnsignedShort()
                 val landscape = oldData.readUnsignedShort()
-                oldMaps[area] = Pair(objects, landscape)
-                regionToFilesOLD[area] = Pair(objects, landscape)
+                oldMapIds[area] = Pair(objects, landscape)
+                mapIdsOLD[area] = Pair(objects, landscape)
             } catch (e: Exception) {
                 println("Error Decoding Map Data")
             }
@@ -65,17 +63,16 @@ object Application {
 
         val newData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_new")!!)
 
-
         for(index in 0..newData.readUnsignedShort()) {
             try {
                 val area = newData.readUnsignedShort()
                 val objects = newData.readUnsignedShort()
                 val landscape = newData.readUnsignedShort()
 
-                val old = oldMaps[area]!!
-                newMaps[old.first] = objects
-                newMaps[old.second] = landscape
-                regionToFilesNEW[area] = Pair(objects, landscape)
+                val old = oldMapIds[area]!!
+                newMapIds[old.first] = objects
+                newMapIds[old.second] = landscape
+                mapIdsNew[area] = Pair(objects, landscape)
             }catch (e : Exception) {
                 println("Error Decoding Map Data")
             }
@@ -84,7 +81,7 @@ object Application {
         println("Loaded Map Data")
     }
     
-    fun locateGzFiles(dir : File) = dir.walkBottomUp().toList()?.filter { it.extension == "gz" }
+    fun locateGzFiles(dir : File) = dir.walkBottomUp().toList().filter { it.extension == "gz" }
 
 
 }

@@ -24,7 +24,9 @@
  */
 package com.mark
 
+import com.mark.map.MapConverter
 import com.mark.swing.JFilePicker
+import com.mark.utils.GZIPUtils
 import java.awt.Dimension
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -118,17 +120,35 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)"), PropertyChangeList
 
         progressBar.maximum = gzFiles.size
         buttonStart.text = "Converting..."
+
+        val landscapeList = emptyList<Int>().toMutableList()
+        Application.mapIdsNew.forEach { _, u ->
+            landscapeList.add(u.first)
+        }
+
+
         gzFiles.forEachIndexed { index, file ->
             val oldID = file.nameWithoutExtension.toInt()
-            val newID = Application.newMaps[oldID]
-            file.copyTo(File(outputGZLoc,"$newID.gz"),true)
+            val newID = Application.newMapIds[oldID]
+            val isLandscape = landscapeList.contains(newID)
+            if(isLandscape) {
+                val regionID = Application.mapIdsNew.filterValues { it.first == newID }.entries.first().key
+                val mapConverter = MapConverter(regionID,file)
+                mapConverter.loadMap()
+                val bytes = GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlock());
+                File(outputGZLoc,"$newID.gz").writeBytes(bytes)
+                println("Found Landscape: $newID")
+            } else {
+                file.copyTo(File(outputGZLoc,"$newID.gz"),true)
+            }
+
             progressBar.string = "$index / ${gzFiles.size}"
             progressBar.value = index
 
-            val regionID = Application.regionToFilesOLD.filterValues { it.second == oldID || it.first == oldID }.entries.first().key
+            val regionID = Application.mapIdsOLD.filterValues { it.second == oldID || it.first == oldID }.entries.first().key
 
             if(!Application.logs.containsKey(regionID)) {
-                Application.logs[regionID] = Logging(Application.regionToFilesOLD[regionID]!!,Application.regionToFilesNEW[regionID]!!)
+                Application.logs[regionID] = Logging(Application.mapIdsOLD[regionID]!!,Application.mapIdsNew[regionID]!!)
             }
 
         }

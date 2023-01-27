@@ -38,10 +38,7 @@ class JFilePicker(textFieldLabel: String, buttonLabel: String) : JPanel() {
         }
     }
 
-    fun addFileTypeFilter(extension: String, description: String) {
-        val filter = FileTypeFilter(extension, description)
-        fileChooser.addChoosableFileFilter(filter)
-    }
+
 
     fun setMode(mode: Int) {
         this.mode = mode
