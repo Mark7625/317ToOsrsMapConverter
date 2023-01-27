@@ -1,356 +1,125 @@
 package com.mark;
 
 import java.math.BigInteger;
-
+import java.nio.ByteBuffer;
 
 public final class Buffer {
 
+    public static final boolean ENABLE_RSA = false;
 
-    public void setOffset(int offset) {
-        this.currentPosition = offset;
-    }
-
-    public String readStrings() {
-        int i = currentPosition;
-        while (payload[currentPosition++] != 10)
-            ;
-        return new String(payload, i, currentPosition - i - 1);
-    }
-
-
-
-    public byte payload[];
-    public int currentPosition;
-    public int bitPosition;
-    private static final int[] BIT_MASKS = { 0, 1, 3, 7, 15, 31, 63, 127, 255,
-            511, 1023, 2047, 4095, 8191, 16383, 32767, 65535, 0x1ffff, 0x3ffff,
-            0x7ffff, 0xfffff, 0x1fffff, 0x3fffff, 0x7fffff, 0xffffff,
-            0x1ffffff, 0x3ffffff, 0x7ffffff, 0xfffffff, 0x1fffffff, 0x3fffffff,
-            0x7fffffff, -1 };
-
-    public int read24Int() {
-        currentPosition += 3;
-        return ((payload[currentPosition - 3] & 0xff) << 16) + ((payload[currentPosition - 2] & 0xff) << 8) + (payload[currentPosition - 1] & 0xff);
-    }
-
-
+    private static final int[] BIT_MASKS = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383,
+            32767, 65535, 0x1ffff, 0x3ffff, 0x7ffff, 0xfffff, 0x1fffff, 0x3fffff, 0x7fffff, 0xffffff, 0x1ffffff,
+            0x3ffffff, 0x7ffffff, 0xfffffff, 0x1fffffff, 0x3fffffff, 0x7fffffff, -1 };
 
     public static Buffer create() {
-        Buffer buffer = new Buffer();
-        buffer.currentPosition = 0;
-        buffer.payload = new byte[5000];
-        return buffer;
+        return new Buffer(new byte[5000]);
     }
 
-    public final int readUTriByte() {
-        currentPosition += 3;
-        return (0xff & payload[currentPosition - 3] << 16)
-                + (0xff & payload[currentPosition - 2] << 8)
-                + (0xff & payload[currentPosition - 1]);
+    private int bitPosition;
+    private byte[] payload;
+    public int position;
+
+    /**
+     * Creates the buffer with the specified payload.
+     *
+     * @param payload
+     *            The payload.
+     */
+
+    public Buffer(ByteBuffer buffer) {
+        this.payload = buffer.array();
+        this.position = 0;
     }
-
-    public final int readUTriByte(int i) {
-        currentPosition += 3;
-        return (0xff & payload[currentPosition - 3] << 16)
-                + (0xff & payload[currentPosition - 2] << 8)
-                + (0xff & payload[currentPosition - 1]);
-    }
-
-
-
-    private Buffer() {}
-
     public Buffer(byte[] payload) {
         this.payload = payload;
-        currentPosition = 0;
-    }
-
-    public int readUSmart2() {
-        int baseVal = 0;
-        int lastVal = 0;
-        while ((lastVal = readUSmart()) == 32767) {
-            baseVal += 32767;
-        }
-        return baseVal + lastVal;
-    }
-
-    public String readNewString() {
-        int i = currentPosition;
-        while (payload[currentPosition++] != 0)
-            ;
-        return new String(payload, i, currentPosition - i - 1);
-    }
-
-
-    public void writeByte(int value) {
-        payload[currentPosition++] = (byte) value;
-    }
-
-    public void writeShort(int value) {
-        payload[currentPosition++] = (byte) (value >> 8);
-        payload[currentPosition++] = (byte) value;
-    }
-
-    public void writeTriByte(int value) {
-        payload[currentPosition++] = (byte) (value >> 16);
-        payload[currentPosition++] = (byte) (value >> 8);
-        payload[currentPosition++] = (byte) value;
-    }
-
-    public void writeInt(int value) {
-        payload[currentPosition++] = (byte) (value >> 24);
-        payload[currentPosition++] = (byte) (value >> 16);
-        payload[currentPosition++] = (byte) (value >> 8);
-        payload[currentPosition++] = (byte) value;
-    }
-
-    public void writeLEInt(int value) {
-        payload[currentPosition++] = (byte) value;
-        payload[currentPosition++] = (byte) (value >> 8);
-        payload[currentPosition++] = (byte) (value >> 16);
-        payload[currentPosition++] = (byte) (value >> 24);
-    }
-
-    public void writeLong(long value) {
-        try {
-            payload[currentPosition++] = (byte) (int) (value >> 56);
-            payload[currentPosition++] = (byte) (int) (value >> 48);
-            payload[currentPosition++] = (byte) (int) (value >> 40);
-            payload[currentPosition++] = (byte) (int) (value >> 32);
-            payload[currentPosition++] = (byte) (int) (value >> 24);
-            payload[currentPosition++] = (byte) (int) (value >> 16);
-            payload[currentPosition++] = (byte) (int) (value >> 8);
-            payload[currentPosition++] = (byte) (int) value;
-        } catch (RuntimeException runtimeexception) {
-
-            throw new RuntimeException();
-        }
-    }
-
-    public void writeString(String text) {
-        System.arraycopy(text.getBytes(), 0, payload, currentPosition,
-                text.length());
-        currentPosition += text.length();
-        payload[currentPosition++] = 10;
-    }
-
-    public void writeBytes(byte data[], int offset, int length) {
-        for (int index = length; index < length + offset; index++)
-            payload[currentPosition++] = data[index];
-    }
-
-    public void writeBytes(int value) {
-        payload[currentPosition - value - 1] = (byte) value;
-    }
-
-    public int method440() {
-        currentPosition += 4;
-        return ((payload[currentPosition - 3] & 0xFF) << 24) + ((payload[currentPosition - 4] & 0xFF) << 16) + ((payload[currentPosition - 1] & 0xFF) << 8) + (payload[ - 2] & 0xFF);
-    }
-
-    public int readUnsignedByte() {
-        return payload[currentPosition++] & 0xff;
-    }
-
-    public int readShort2() {
-        currentPosition += 2;
-        int i = ((payload[currentPosition - 2] & 0xff) << 8) + (payload[currentPosition - 1] & 0xff);
-        if(i > 32767)
-            i -= 65537;
-        return i;
-    }
-
-    public byte readSignedByte() {
-        return payload[currentPosition++];
-    }
-
-    public int readUShort() {
-        currentPosition += 2;
-        return ((payload[currentPosition - 2] & 0xff) << 8)
-                + (payload[currentPosition - 1] & 0xff);
-    }
-
-    public int readShort() {
-        currentPosition += 2;
-        int value = ((payload[currentPosition - 2] & 0xff) << 8)
-                + (payload[currentPosition - 1] & 0xff);
-
-        if (value > 32767) {
-            value -= 0x10000;
-        }
-        return value;
-    }
-
-    public int readTriByte() {
-        currentPosition += 3;
-        return ((payload[currentPosition - 3] & 0xff) << 16)
-                + ((payload[currentPosition - 2] & 0xff) << 8)
-                + (payload[currentPosition - 1] & 0xff);
-    }
-
-    public int readInt() {
-        currentPosition += 4;
-        return ((payload[currentPosition - 4] & 0xff) << 24)
-                + ((payload[currentPosition - 3] & 0xff) << 16)
-                + ((payload[currentPosition - 2] & 0xff) << 8)
-                + (payload[currentPosition - 1] & 0xff);
-    }
-
-    public long readLong() {
-        long msi = (long) readInt() & 0xffffffffL;
-        long lsi = (long) readInt() & 0xffffffffL;
-        return (msi << 32) + lsi;
-    }
-
-    public String readString() {
-        int index = currentPosition;
-        while (payload[currentPosition++] != 10)
-            ;
-        return new String(payload, index, currentPosition - index - 1);
-    }
-
-    public byte[] readBytes() {
-        int index = currentPosition;
-        while (payload[currentPosition++] != 10)
-            ;
-        byte data[] = new byte[currentPosition - index - 1];
-        System.arraycopy(payload, index, data, index - index, currentPosition - 1 - index);
-        return data;
-    }
-
-    public void readBytes(int offset, int length, byte data[]) {
-        for (int index = length; index < length + offset; index++)
-            data[index] = payload[currentPosition++];
-    }
-
-    public void initBitAccess() {
-        bitPosition = currentPosition * 8;
-    }
-
-    public int readBits(int amount) {
-        int byteOffset = bitPosition >> 3;
-        int bitOffset = 8 - (bitPosition & 7);
-        int value = 0;
-        bitPosition += amount;
-        for (; amount > bitOffset; bitOffset = 8) {
-            value += (payload[byteOffset++] & BIT_MASKS[bitOffset]) << amount
-                    - bitOffset;
-            amount -= bitOffset;
-        }
-        if (amount == bitOffset)
-            value += payload[byteOffset] & BIT_MASKS[bitOffset];
-        else
-            value += payload[byteOffset] >> bitOffset - amount
-                    & BIT_MASKS[amount];
-        return value;
+        position = 0;
     }
 
     public void disableBitAccess() {
-        currentPosition = (bitPosition + 7) / 8;
+        position = (bitPosition + 7) / 8;
     }
 
-    public int readSmart() {
-        int value = payload[currentPosition] & 0xff;
-        if (value < 128)
-            return readUnsignedByte() - 64;
-        else
-            return readUShort() - 49152;
+    public void enableBitAccess() {
+        bitPosition = position * 8;
     }
 
-    public int getSmart() {
-        try {
-            // checks current without modifying position
-            if (currentPosition >= payload.length) {
-                return payload[payload.length - 1] & 0xFF;
-            }
-            int value = payload[currentPosition] & 0xFF;
+    public void encodeRSA(BigInteger exponent, BigInteger modulus) {
+        int length = position;
+        position = 0;
+        byte[] buffer = new byte[length];
+        readData(buffer, 0, length);
+        byte[] rsa = buffer;
 
-            if (value < 128) {
-                return readUnsignedByte();
-            } else {
-                return readUShort() - 32768;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return readUShort() - 32768;
+        if (ENABLE_RSA) {
+            rsa = new BigInteger(buffer).modPow(exponent, modulus).toByteArray();
         }
+
+        position = 0;
+        writeByte(rsa.length);
+        writeBytes(rsa, 0, rsa.length);
     }
 
-    public int readUSmart() {
-        int value = payload[currentPosition] & 0xff;
-        if (value < 128)
-            return readUnsignedByte();
-        else
-            return readUShort() - 32768;
+    public int getBitPosition() {
+        return bitPosition;
     }
 
-
-    public void writeNegatedByte(int value) {
-        payload[currentPosition++] = (byte) (-value);
+    public byte[] getPayload() {
+        return payload;
     }
 
-    public void writeByteS(int value) {
-        payload[currentPosition++] = (byte) (128 - value);
+    public int getPosition() {
+        return position;
     }
 
-    public int readUByteA() {
-        return payload[currentPosition++] - 128 & 0xff;
+    public int readBits(int amount) {
+        int byteOffset = bitPosition / 8;
+        int bitOffset = 8 - (bitPosition & 7);
+        int value = 0;
+        bitPosition += amount;
+
+        for (; amount > bitOffset; bitOffset = 8) {
+            value += (payload[byteOffset++] & BIT_MASKS[bitOffset]) << amount - bitOffset;
+            amount -= bitOffset;
+        }
+
+        if (amount == bitOffset) {
+            value += payload[byteOffset] & BIT_MASKS[bitOffset];
+        } else {
+            value += payload[byteOffset] >> bitOffset - amount & BIT_MASKS[amount];
+        }
+
+        return value;
     }
 
-    public int readNegUByte() {
-        return -payload[currentPosition++] & 0xff;
-    }
-
-    public int readUByteS() {
-        return 128 - payload[currentPosition++] & 0xff;
-    }
-
-    public byte readNegByte() {
-        return (byte) -payload[currentPosition++];
+    public byte readByte() {
+        return payload[position++];
     }
 
     public byte readByteS() {
-        return (byte) (128 - payload[currentPosition++]);
+        return (byte) (128 - payload[position++]);
     }
 
-    public void writeLEShort(int value) {
-        payload[currentPosition++] = (byte) value;
-        payload[currentPosition++] = (byte) (value >> 8);
+    public void readData(byte[] data, int offset, int length) {
+        for (int i = offset; i < offset + length; i++) {
+            data[i] = payload[position++];
+        }
     }
 
-    public void writeShortA(int value) {
-        payload[currentPosition++] = (byte) (value >> 8);
-        payload[currentPosition++] = (byte) (value + 128);
+    public int readIMEInt() { // V2
+        position += 4;
+        return ((payload[position - 3] & 0xff) << 24) + ((payload[position - 4] & 0xff) << 16)
+                + ((payload[position - 1] & 0xff) << 8) + (payload[position - 2] & 0xff);
     }
 
-    public void writeLEShortA(int value) {
-        payload[currentPosition++] = (byte) (value + 128);
-        payload[currentPosition++] = (byte) (value >> 8);
-    }
-
-    public int readLEUShort() {
-        currentPosition += 2;
-        return ((payload[currentPosition - 1] & 0xff) << 8)
-                + (payload[currentPosition - 2] & 0xff);
-    }
-
-    public int readUShortA() {
-        currentPosition += 2;
-        return ((payload[currentPosition - 2] & 0xff) << 8)
-                + (payload[currentPosition - 1] - 128 & 0xff);
-    }
-
-    public int readLEUShortA() {
-        currentPosition += 2;
-        return ((payload[currentPosition - 1] & 0xff) << 8)
-                + (payload[currentPosition - 2] - 128 & 0xff);
+    public int readInt() {
+        position += 4;
+        return ((payload[position - 4] & 0xff) << 24) + ((payload[position - 3] & 0xff) << 16)
+                + ((payload[position - 2] & 0xff) << 8) + (payload[position - 1] & 0xff);
     }
 
     public int readLEShort() {
-        currentPosition += 2;
-        int value = ((payload[currentPosition - 1] & 0xff) << 8)
-                + (payload[currentPosition - 2] & 0xff);
-
+        position += 2;
+        int value = ((payload[position - 1] & 0xff) << 8) + (payload[position - 2] & 0xff);
         if (value > 32767) {
             value -= 0x10000;
         }
@@ -358,46 +127,311 @@ public final class Buffer {
     }
 
     public int readLEShortA() {
-        currentPosition += 2;
-        int value = ((payload[currentPosition - 1] & 0xff) << 8)
-                + (payload[currentPosition - 2] - 128 & 0xff);
-        if (value > 32767)
+        position += 2;
+        int value = ((payload[position - 1] & 0xff) << 8) + (payload[position - 2] - 128 & 0xff);
+        if (value > 32767) {
             value -= 0x10000;
+        }
         return value;
     }
 
-    public int getIntLittleEndian() {
-        currentPosition += 4;
-        return ((payload[currentPosition - 4] & 0xFF) << 24) + ((payload[currentPosition - 3] & 0xFF) << 16) + ((payload[currentPosition - 2] & 0xFF) << 8) + (payload[currentPosition - 1] & 0xFF);
+    public int readLEUShort() {
+        position += 2;
+        return ((payload[position - 1] & 0xff) << 8) + (payload[position - 2] & 0xff);
+    }
+
+    public int readLEUShortA() {
+        position += 2;
+        return ((payload[position - 1] & 0xff) << 8) + (payload[position - 2] - 128 & 0xff);
+    }
+
+    public long readLong() {
+        long msi = readInt() & 0xFFFFFFFFL;
+        long lsi = readInt() & 0xFFFFFFFFL;
+        return (msi << 32) + lsi;
     }
 
     public int readMEInt() { // V1
-        currentPosition += 4;
-        return ((payload[currentPosition - 2] & 0xff) << 24)
-                + ((payload[currentPosition - 1] & 0xff) << 16)
-                + ((payload[currentPosition - 4] & 0xff) << 8)
-                + (payload[currentPosition - 3] & 0xff);
+        position += 4;
+        return ((payload[position - 2] & 0xff) << 24) + ((payload[position - 1] & 0xff) << 16)
+                + ((payload[position - 4] & 0xff) << 8) + (payload[position - 3] & 0xff);
     }
 
-    public int readIMEInt() { // V2
-        currentPosition += 4;
-        return ((payload[currentPosition - 3] & 0xff) << 24)
-                + ((payload[currentPosition - 4] & 0xff) << 16)
-                + ((payload[currentPosition - 1] & 0xff) << 8)
-                + (payload[currentPosition - 2] & 0xff);
+    public byte readNegByte() {
+        return (byte) -payload[position++];
     }
 
-    public void writeReverseDataA(byte data[], int length, int offset) {
-        for (int index = (length + offset) - 1; index >= length; index--) {
-            payload[currentPosition++] = (byte) (data[index] + 128);
+    public int readNegUByte() {
+        return -payload[position++] & 0xff;
+    }
+
+    public void readReverseData(byte[] data, int offset, int length) {
+        for (int i = length + offset - 1; i >= length; i--) {
+            data[i] = payload[position++];
         }
     }
 
-    public void readReverseData(byte data[], int offset, int length) {
-        for (int index = (length + offset) - 1; index >= length; index--) {
-            data[index] = payload[currentPosition++];
+    public int readShort() {
+        position += 2;
+        int value = ((payload[position - 2] & 0xff) << 8) + (payload[position - 1] & 0xff);
+        if (value > 32767) {
+            value -= 0x10000;
         }
 
+        return value;
+    }
+
+    public int readShort2() {
+        position += 2;
+        int value = ((payload[position - 2] & 0xff) << 8) + (payload[position - 1] & 0xff);
+        if (value > 60000) {
+            value -= 65535;
+        }
+        return value;
+    }
+
+    public int readSmart() {
+        int value = payload[position] & 0xff;
+        if (value < 128)
+            return readUByte() - 64;
+
+        return readUShort() - 49152;
+    }
+
+
+
+    public int readBigSmart() {
+        int value = payload[position] & 0xff;
+        if (value >= 0)
+            return readUShort() & 0xFFFF;
+
+        return readInt() & Integer.MAX_VALUE;
+    }
+
+    private static char CHARACTERS[] = { '\u20AC', '\0', '\u201A', '\u0192', '\u201E', '\u2026', '\u2020', '\u2021',
+            '\u02C6', '\u2030', '\u0160', '\u2039', '\u0152', '\0', '\u017D', '\0', '\0', '\u2018', '\u2019', '\u201C',
+            '\u201D', '\u2022', '\u2013', '\u2014', '\u02DC', '\u2122', '\u0161', '\u203A', '\u0153', '\0', '\u017E',
+            '\u0178' };
+
+    public String readOSRSString() {
+        StringBuilder bldr = new StringBuilder();
+        int b;
+        while ((b = payload[position++]) != 0) {
+            if (b >= 127 && b < 160) {
+                char curChar = CHARACTERS[b - 128];
+                if (curChar == 0) {
+                    curChar = 63;
+                }
+
+                bldr.append(curChar);
+            } else {
+                bldr.append((char) b);
+            }
+        }
+        return bldr.toString();
+    }
+
+    public String readString() {
+        int start = position;
+        while (payload[position++] != 10) {
+
+        }
+        return new String(payload, start, position - start - 1);
+    }
+
+    public String readStringAlternative() {
+        int start = position;
+        while (payload[position++] != 0) {
+
+        }
+        return new String(payload, start, position - start - 1);
+    }
+
+    public byte[] readStringBytes() {
+        int start = position;
+        while (payload[position++] != 10) {
+
+        }
+
+        byte[] bytes = new byte[position - start - 1];
+        for (int i = start; i < position - 1; i++) {
+            bytes[i - start] = payload[i];
+        }
+
+        return bytes;
+    }
+
+    public int readUByte() {
+        return payload[position++] & 0xff;
+    }
+
+    public final int getULEShort() {
+        this.position += 2;
+        return (this.payload[-2 + this.position] << 8 & 65280) - -(this.payload[-1 + this.position] & 255);
+    }
+
+    public int readUByteA() {
+        return payload[position++] - 128 & 0xff;
+    }
+
+    public int readUByteS() {
+        return 128 - payload[position++] & 0xff;
+    }
+
+    public int readUShort() {
+        position += 2;
+        return ((payload[position - 2] & 0xff) << 8) + (payload[position - 1] & 0xff);
+    }
+
+    public int readUShortA() {
+        position += 2;
+        return ((payload[position - 2] & 0xff) << 8) + (payload[position - 1] - 128 & 0xff);
+    }
+
+    public int readUSmart() {
+        int value = payload[position] & 0xff;
+        if (value < 128)
+            return readUByte();
+
+        return readUShort() - 0x8000;
+    }
+
+    public int readUSmartInt() {
+        int val = 0;
+        int lastVal = 0;
+        while((lastVal = readUSmart()) == 32767) {
+            val += 32767;
+        }
+
+        return val + lastVal;
+    }
+
+    public int readUTriByte() {
+        position += 3;
+        return ((payload[position - 3] & 0xff) << 16) + ((payload[position - 2] & 0xff) << 8)
+                + (payload[position - 1] & 0xff);
+    }
+
+    public void setBitPosition(int bitPosition) {
+        this.bitPosition = bitPosition;
+    }
+
+    public void setPayload(byte[] payload) {
+        this.payload = payload;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
+
+    public void writeByte(int i) {
+        payload[position++] = (byte) i;
+    }
+
+    public void writeBytes(byte[] data, int offset, int length) {
+        for (int i = offset; i < offset + length; i++) {
+            payload[position++] = data[i];
+        }
+    }
+
+    public void writeByteS(int i) {
+        payload[position++] = (byte) (128 - i);
+    }
+
+    public void writeInt(int i) {
+        payload[position++] = (byte) (i >> 24);
+        payload[position++] = (byte) (i >> 16);
+        payload[position++] = (byte) (i >> 8);
+        payload[position++] = (byte) i;
+    }
+
+    @SuppressWarnings("deprecation")
+    public void writeJString(String s) {
+        s.getBytes(0, s.length(), payload, position);
+        position += s.length();
+        payload[position++] = 10;
+    }
+
+    public void writeLEInt(int i) {
+        payload[position++] = (byte) i;
+        payload[position++] = (byte) (i >> 8);
+        payload[position++] = (byte) (i >> 16);
+        payload[position++] = (byte) (i >> 24);
+    }
+
+    public void writeLEShort(int i) {
+        payload[position++] = (byte) i;
+        payload[position++] = (byte) (i >> 8);
+    }
+
+    public void writeLEShortA(int i) {
+        payload[position++] = (byte) (i + 128);
+        payload[position++] = (byte) (i >> 8);
+    }
+
+    public void writeLong(long l) {
+        payload[position++] = (byte) (int) (l >> 56);
+        payload[position++] = (byte) (int) (l >> 48);
+        payload[position++] = (byte) (int) (l >> 40);
+        payload[position++] = (byte) (int) (l >> 32);
+        payload[position++] = (byte) (int) (l >> 24);
+        payload[position++] = (byte) (int) (l >> 16);
+        payload[position++] = (byte) (int) (l >> 8);
+        payload[position++] = (byte) (int) l;
+    }
+
+    public void writeNegatedByte(int i) {
+        payload[position++] = (byte) -i;
+    }
+
+    public void writeOpcode(int i) {
+        payload[position++] = (byte) i;
+    }
+
+    public void writeReverseDataA(byte[] data, int length, int offset) {
+        for (int i = length + offset - 1; i >= length; i--) {
+            payload[position++] = (byte) (data[i] + 128);
+        }
+    }
+
+    public void writeShort(int i) {
+        payload[position++] = (byte) (i >> 8);
+        payload[position++] = (byte) i;
+    }
+
+    public void writeShortA(int i) {
+        payload[position++] = (byte) (i >> 8);
+        payload[position++] = (byte) (i + 128);
+    }
+
+    public void writeSizeByte(int i) {
+        payload[position - i - 1] = (byte) i;
+    }
+
+    public void writeTriByte(int i) {
+        payload[position++] = (byte) (i >> 16);
+        payload[position++] = (byte) (i >> 8);
+        payload[position++] = (byte) i;
+    }
+
+    public void writeUSmart(int value) {
+        if (value < 128) {
+            this.writeByte(value);
+        } else {
+            this.writeShort(0x8000 | value);
+        }
+    }
+
+    public void writeUSmartInt(int value) {
+        if (value > Short.MAX_VALUE) {
+            this.writeInt(value);
+        } else {
+            this.writeUSmart(value);
+        }
+    }
+
+    public void skip(int bytesToSkip) {
+        position += bytesToSkip;
     }
 
 }
