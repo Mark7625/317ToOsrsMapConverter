@@ -24,14 +24,27 @@
  */
 package com.mark
 
-import java.io.DataInputStream
-import java.io.File
+import com.github.weisj.darklaf.LafManager
+import com.github.weisj.darklaf.theme.DarculaTheme
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.io.*
+import java.lang.reflect.Type
+import java.net.URISyntaxException
+import java.nio.charset.StandardCharsets
 import javax.swing.SwingUtilities
-import javax.swing.UIManager
+
 
 data class Logging(
     val oldIds: Pair<Int,Int>,
     val newIds: Pair<Int,Int>
+)
+
+data class MapDetails(
+    val land317 : Int,
+    val map317 : Int,
+    val landOSRS : String,
+    val mapOSRS : String,
 )
 
 object Application {
@@ -39,58 +52,41 @@ object Application {
 
     val logs = emptyMap<Int,Logging>().toMutableMap()
 
-
-    val mapIdsOLD = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
-    val mapIdsNew = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
-
-    val oldMapIds = emptyMap<Int,Pair<Int,Int>>().toMutableMap()
-    val newMapIds = emptyMap<Int,Int>().toMutableMap()
+    var beforeShort : MutableMap<Int,MapDetails> = emptyMap<Int,MapDetails>().toMutableMap()
+    var afterShort : MutableMap<Int,MapDetails> = emptyMap<Int,MapDetails>().toMutableMap()
 
     fun init() {
-        val oldData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_old")!!)
 
-        for(index in 0..oldData.readUnsignedShort()) {
-            try {
-                val area = oldData.readUnsignedShort()
-                val objects = oldData.readUnsignedShort()
-                val landscape = oldData.readUnsignedShort()
-                oldMapIds[area] = Pair(objects, landscape)
-                mapIdsOLD[area] = Pair(objects, landscape)
-            } catch (e: Exception) {
-                println("Error Decoding Map Data")
-            }
-        }
+        val mapType: Type = object : TypeToken<Map<Int?, MapDetails?>?>() {}.type
 
-        val newData = DataInputStream(this.javaClass.classLoader.getResourceAsStream("map_index_new")!!)
+        beforeShort = Gson().fromJson(resourceToString("beforeShort.json"), mapType)
+        afterShort = Gson().fromJson(resourceToString("afterShort.json"), mapType)
 
-        for(index in 0..newData.readUnsignedShort()) {
-            try {
-                val area = newData.readUnsignedShort()
-                val objects = newData.readUnsignedShort()
-                val landscape = newData.readUnsignedShort()
+        val testRegion = 12342
 
-                val old = oldMapIds[area]!!
-                newMapIds[old.first] = objects
-                newMapIds[old.second] = landscape
-                mapIdsNew[area] = Pair(objects, landscape)
-            }catch (e : Exception) {
-                println("Error Decoding Map Data")
-            }
-        }
+        println("Loaded Map Indexes [Edge (Old: ${beforeShort[testRegion]}), (new ${afterShort[testRegion]})]")
 
-        println("Loaded Map Data")
+    }
+
+    @Throws(IOException::class, URISyntaxException::class)
+    private fun resourceToString(filePath: String): String {
+        val stream: InputStream = this.javaClass.classLoader.getResourceAsStream(filePath)!!
+        val streamReader = InputStreamReader(stream, StandardCharsets.UTF_8)
+        return streamReader.readText()
     }
     
     fun locateGzFiles(dir : File) = dir.walkBottomUp().toList().filter { it.extension == "gz" }
+    fun locateGzFiles1(dir : File) = dir.walkBottomUp().toList().filter { it.extension == "gz" || it.extension == "dat" }
+
 
 
 }
 
 fun main() {
-    try {
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-    } catch (ex: Exception) {
-        ex.printStackTrace()
+    SwingUtilities.invokeLater {
+        LafManager.install()
+        LafManager.install(DarculaTheme())
+
+        ApplicationGUI().isVisible = true
     }
-    SwingUtilities.invokeLater { ApplicationGUI().isVisible = true }
 }

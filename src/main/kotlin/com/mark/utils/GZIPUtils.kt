@@ -6,12 +6,17 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
 object GZIPUtils {
-    fun gzipBytes(input: ByteArray) = ByteArrayOutputStream().use { bout ->
-        GzipCompressorOutputStream(bout).use {
-            it.write(input, 0, input.size)
-            it.close()
+    fun gzipBytes(input: ByteArray, gzip : Boolean) = ByteArrayOutputStream().use { bout ->
+        if (!gzip) {
             bout.toByteArray()
+        } else {
+            GzipCompressorOutputStream(bout).use {
+                it.write(input, 0, input.size)
+                it.close()
+                bout.toByteArray()
+            }
         }
+
     }?: error("Gzip was Null")
 
     fun unzip(input: ByteArray) = ByteArrayInputStream(input).use { bin ->

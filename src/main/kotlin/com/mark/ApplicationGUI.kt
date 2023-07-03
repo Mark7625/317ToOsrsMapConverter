@@ -27,68 +27,58 @@ package com.mark
 import com.mark.map.MapConverter
 import com.mark.swing.JFilePicker
 import com.mark.utils.GZIPUtils
-import java.awt.Dimension
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Insets
-import java.beans.PropertyChangeEvent
-import java.beans.PropertyChangeListener
+import java.awt.*
+import java.awt.event.KeyEvent
 import java.io.File
 import javax.swing.*
 
-class ApplicationGUI : JFrame("Map ID Converter (Mark7625)"), PropertyChangeListener {
 
-    private val inputPicker: JFilePicker = JFilePicker(
-        "Input Location: ",
-        "Browse..."
-    )
-
-    private val outputPicker: JFilePicker = JFilePicker(
-        "Output Location: ",
-        "Browse..."
-    )
-
-    private val buttonStart = JButton("Start")
-    private val fieldFileSize = JTextField(15)
-    private val progressBar = JProgressBar(0, 100)
+class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
 
     init {
-        // set up layout
-        layout = GridBagLayout()
-        val constraints = GridBagConstraints()
-        constraints.anchor = GridBagConstraints.WEST
-        constraints.insets = Insets(5, 5, 5, 5)
 
-        // set up components
-        inputPicker.setMode(JFilePicker.MODE_SAVE)
-        inputPicker.fileChooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-        outputPicker.setMode(JFilePicker.MODE_SAVE)
-        outputPicker.fileChooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-        fieldFileSize.isEditable = false
-        buttonStart.addActionListener { startConverting() }
-        progressBar.preferredSize = Dimension(200, 30)
-        progressBar.isStringPainted = true
+        val tabbedPane = JTabbedPane()
+
+        val leftPanel = JPanel()
+
+        tabbedPane.addTab(
+            "Map Converter (Rev: 1-208)", null, ConvertTab(true),
+            "Converts Maps from Post208 to pre208 or pre208 to post 208"
+        )
+        tabbedPane.setMnemonicAt(0, KeyEvent.VK_1)
+
+        tabbedPane.addTab(
+            "Map Converter (Rev: 208+)", null, ConvertTab(false),
+            "Converts to osrs naming (\"317 naming (34/35)\",\"OSRS(\\\"l34_35\\\"/)\")"
+        )
+        tabbedPane.setMnemonicAt(1, KeyEvent.VK_2)
+
+        tabbedPane.addTab(
+            "317 map name format to OSRS", null, NameConvertTab(),
+            "Converts to osrs naming (\"317 naming (34/35)\",\"OSRS(\\\"l34_35\\\"/)\")"
+        )
+        tabbedPane.setMnemonicAt(2, KeyEvent.VK_3)
+
+
+        tabbedPane.selectedIndex = 0
+
+        leftPanel.add(tabbedPane)
+
+
         isResizable = false
 
-        // add components to the frame
+        val rightPanel = JPanel()
 
-        constraints.gridx = 0
-        constraints.gridy = 0
-        add(inputPicker, constraints)
+        rightPanel.layout = BoxLayout(rightPanel, BoxLayout.Y_AXIS)
 
-        constraints.gridx = 0
-        constraints.fill = GridBagConstraints.HORIZONTAL
-        constraints.gridy = 1
-        add(outputPicker, constraints)
+        nameSaving.alignmentX = Component.CENTER_ALIGNMENT
+        format.alignmentX = Component.CENTER_ALIGNMENT
 
-        constraints.gridx = 0
-        constraints.gridy = 2
-        add(buttonStart, constraints)
+        rightPanel.add(nameSaving)
+        rightPanel.add(format)
 
-        constraints.gridx = 0
-        constraints.gridy = 3
-        add(progressBar, constraints)
-
+        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel)
+        add(splitPane)
 
         Application.init()
         pack()
@@ -96,87 +86,98 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)"), PropertyChangeList
         defaultCloseOperation = EXIT_ON_CLOSE
     }
 
-    /**
-     * handle click event of the Download button
-     */
-    private fun startConverting() {
 
-        if(outputPicker.selectedFilePath.isEmpty() || outputPicker.selectedFilePath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Input or Output has not been defined.", "Error", JOptionPane.WARNING_MESSAGE)
-            return
-        }
+    companion object {
 
-        progressBar.value = 0
-        buttonStart.isEnabled = false
-        buttonStart.text = "Looking for Files..."
+        var format: JComboBox<String> = JComboBox<String>(listOf("gz","dat").toTypedArray())
+        var nameSaving: JComboBox<String> = JComboBox<String>(listOf("317 naming (34/35)","OSRS(\"l34_35\"/)").toTypedArray())
 
-        val gzFiles = Application.locateGzFiles(File(inputPicker.selectedFilePath))!!
+        /**
+         * handle click event of the Download button
+         */
+        fun startConverting(beforeShort : Boolean, panel : JPanel, progressBar : JProgressBar, outputPicker : JFilePicker, inputPicker : JFilePicker, buttonStart: JButton) {
 
-        val output = File(outputPicker.selectedFilePath)
-        val outputGZLoc = File(outputPicker.selectedFilePath + "/gz/")
-        if(!outputGZLoc.exists()) {
-            outputGZLoc.mkdirs()
-        }
-
-        progressBar.maximum = gzFiles.size
-        buttonStart.text = "Converting..."
-
-        val landscapeList = emptyList<Int>().toMutableList()
-        Application.mapIdsNew.forEach { _, u ->
-            landscapeList.add(u.first)
-        }
-
-
-        gzFiles.forEachIndexed { index, file ->
-            val oldID = file.nameWithoutExtension.toInt()
-            val newID = Application.newMapIds[oldID]
-            val isLandscape = landscapeList.contains(newID)
-            if(isLandscape) {
-                val regionID = Application.mapIdsNew.filterValues { it.first == newID }.entries.first().key
-                val mapConverter = MapConverter(regionID,file)
-                mapConverter.loadMap()
-                val bytes = GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlock());
-                File(outputGZLoc,"$newID.gz").writeBytes(bytes)
-                println("Found Landscape: $newID")
-            } else {
-                file.copyTo(File(outputGZLoc,"$newID.gz"),true)
+            if(outputPicker.selectedFilePath.isEmpty() || outputPicker.selectedFilePath.isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "Input or Output has not been defined.", "Error", JOptionPane.WARNING_MESSAGE)
+                return
             }
 
-            progressBar.string = "$index / ${gzFiles.size}"
-            progressBar.value = index
+            progressBar.value = 0
+            buttonStart.isEnabled = false
+            buttonStart.text = "Looking for Files..."
 
-            val regionID = Application.mapIdsOLD.filterValues { it.second == oldID || it.first == oldID }.entries.first().key
+            val gzFiles = Application.locateGzFiles(File(inputPicker.selectedFilePath))
 
-            if(!Application.logs.containsKey(regionID)) {
-                Application.logs[regionID] = Logging(Application.mapIdsOLD[regionID]!!,Application.mapIdsNew[regionID]!!)
+            val outputGZLoc = File(outputPicker.selectedFilePath + "/gz/")
+            if(!outputGZLoc.exists()) {
+                outputGZLoc.mkdirs()
             }
 
+            progressBar.maximum = gzFiles.size
+
+            buttonStart.text = if (!beforeShort) "Converting to post208" else "Converting to pre208"
+
+            gzFiles.forEachIndexed { index, file ->
+                val fileID = file.nameWithoutExtension
+
+                val regionID: Int
+                val generatedMapData : MapDetails
+
+                if (beforeShort) {
+                    regionID = Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                    generatedMapData = Application.beforeShort[regionID]!!
+                } else {
+                    regionID = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                    generatedMapData = Application.afterShort[regionID]!!
+                }
+
+                val isLandScape = if (beforeShort) Application.beforeShort.filterValues { it.land317 == fileID.toInt() }.count() == 1 else  Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+
+                val mapFileID = if (isLandScape) generatedMapData.land317.toString() else generatedMapData.map317.toString()
+
+                val saveName = getSaveName(mapFileID,regionID,isLandScape)
+
+                if(isLandScape) {
+
+                    val mapConverter = MapConverter(regionID,file)
+                    val shouldGZip = format.selectedIndex == 0
+                    val bytes : ByteArray = if (beforeShort) {
+                        mapConverter.loadMapByte()
+                        GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockShort(), shouldGZip)
+                    } else {
+                        mapConverter.loadMapShort()
+                        GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockByte(), shouldGZip)
+                    }
+                    File(outputGZLoc, saveName).writeBytes(bytes)
+                } else {
+                    file.copyTo(File(outputGZLoc,saveName),true)
+                }
+
+                progressBar.string = "$index / ${gzFiles.size}"
+                progressBar.value = index
+
+            }
+
+            progressBar.value = gzFiles.size + 1
+            progressBar.string = "Finished"
+            buttonStart.isEnabled = true
+            buttonStart.text = "Start"
+
         }
-        buttonStart.text = "Making Logs..."
-        val outputLog = StringBuilder()
 
-        Application.logs.forEach { (region, data) ->
-            outputLog.append("Region: $region : [${data.oldIds.first}, ${data.oldIds.second}] to [${data.newIds.first}, ${data.newIds.second}]${System.lineSeparator()}")
+        fun getSaveName(mapID: String,regionID : Int, landscape : Boolean) : String {
+            val formatAppend = format.selectedItem!!.toString()
+
+            if (nameSaving.selectedIndex == 0) {
+                return "${mapID}.${formatAppend}"
+            }
+            val x = (regionID shr 8) and 0xFF
+            val y = regionID and 0xFF
+            return "${if (landscape) "l" else "m"}${x}_${y}.${formatAppend}"
         }
 
-        File(output,"log.txt").writeText(outputLog.toString())
-
-        buttonStart.text = "Finished..."
-
-        buttonStart.isEnabled = true
-        buttonStart.text = "Start"
 
     }
 
 
-    /**
-     * Update the progress bar's state whenever the progress of download
-     * changes.
-     */
-    override fun propertyChange(evt: PropertyChangeEvent) {
-        if ("progress" === evt.propertyName) {
-            val progress = evt.newValue as Int
-            progressBar.value = progress
-        }
-    }
 }

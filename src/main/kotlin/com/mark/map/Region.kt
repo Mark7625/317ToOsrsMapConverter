@@ -1,7 +1,6 @@
 package com.mark.map
 
 import com.mark.utils.Buffer
-import java.util.*
 
 class Region {
 
@@ -15,12 +14,24 @@ class Region {
     private val overlayOrientations: Array<Array<ByteArray>> = Array(4) { Array(width) { ByteArray(length) } }
     private var manualTileHeight: Array<Array<ByteArray>> = Array(4) { Array(width) { ByteArray(length) } }
 
-    fun unpackTiles(data: ByteArray, dX: Int, dY: Int, regionX: Int, regionY: Int) {
+    fun unpackTilesByte(data: ByteArray, dX: Int, dY: Int, regionX: Int, regionY: Int) {
         val buffer = Buffer(data)
         for (plane in 0..3) {
             for (x in 0..63) {
                 for (y in 0..63) {
-                    readTile(buffer, x + dX, y + dY, plane, regionX, regionY)
+                    readTileByte(buffer, x + dX, y + dY, plane, regionX, regionY)
+                }
+            }
+        }
+        setHeights()
+    }
+
+    fun unpackTilesShort(data: ByteArray, dX: Int, dY: Int, regionX: Int, regionY: Int) {
+        val buffer = Buffer(data)
+        for (plane in 0..3) {
+            for (x in 0..63) {
+                for (y in 0..63) {
+                    readTileShort(buffer, x + dX, y + dY, plane, regionX, regionY)
                 }
             }
         }
@@ -38,7 +49,7 @@ class Region {
         }
     }
 
-    private fun readTile(buffer: Buffer, x: Int, y: Int, z: Int, regionX: Int, regionY: Int) {
+    private fun readTileByte(buffer: Buffer, x: Int, y: Int, z: Int, regionX: Int, regionY: Int) {
         if (x in 0..63 && y in 0..63) {
             tileFlags[z][x][y] = 0
             do {
@@ -87,19 +98,103 @@ class Region {
         } while (true)
     }
 
-    fun saveTerrainBlock(): ByteArray {
+    private fun readTileShort(buffer: Buffer, x: Int, y: Int, z: Int, regionX: Int, regionY: Int) {
+        if (x in 0..63 && y in 0..63) {
+            tileFlags[z][x][y] = 0
+            do {
+                val type = buffer.readUShort()
+                if (type == 0) {
+                    manualTileHeight[z][x][y] = 0
+                    if (z == 0) {
+                        tileHeights[0][x][y] = -calculateHeight(0xe3b7b + x + regionX, 0x87cce + y + regionY) * 8
+                    } else {
+                        tileHeights[z][x][y] = tileHeights[z - 1][x][y] - 240
+                    }
+                    return
+                } else if (type == 1) {
+                    manualTileHeight[z][x][y] = 1
+                    var height = buffer.readUByte()
+                    if (height == 1) {
+                        height = 0
+                    }
+                    if (z == 0) {
+                        tileHeights[0][x][y] = -height * 8
+                    } else {
+                        tileHeights[z][x][y] = tileHeights[z - 1][x][y] - height * 8
+                    }
+                    return
+                } else if (type <= 49) {
+                    overlays[z][x][y] = buffer.readUShort().toShort()
+                    overlayShapes[z][x][y] = ((type - 2) / 4).toByte()
+                    overlayOrientations[z][x][y] = (type - 2 + 0 and 3).toByte()
+                } else if (type <= 81) {
+                    tileFlags[z][x][y] = (type - 49).toByte()
+                } else {
+                    underlays[z][x][y] = (type - 81).toShort()
+                }
+            } while (true)
+        }
+        do {
+            val opcode1 = buffer.readUShort()
+            if (opcode1 == 0) {
+                break
+            } else if (opcode1 == 1) {
+                buffer.readUByte()
+                return
+            } else if (opcode1 <= 49) {
+                buffer.readUShort()
+            }
+        } while (true)
+    }
+
+    fun saveTerrainBlockShort(): ByteArray {
         val buffer = Buffer(ByteArray(131072))
         for (plane in 0..3) {
             for (x in 0..63) {
                 for (y in 0..63) {
-                    saveTerrainTile(plane, x, y, buffer)
+                    saveTerrainTileShort(plane, x, y, buffer)
                 }
             }
         }
         return buffer.payload.copyOf(buffer.position)
     }
 
-    private fun saveTerrainTile(y: Int, x: Int, z: Int, buffer: Buffer) {
+    fun saveTerrainBlockByte(): ByteArray {
+        val buffer = Buffer(ByteArray(131072))
+        for (plane in 0..3) {
+            for (x in 0..63) {
+                for (y in 0..63) {
+                    saveTerrainTileByte(plane, x, y, buffer)
+                }
+            }
+        }
+        return buffer.payload.copyOf(buffer.position)
+    }
+
+    private fun saveTerrainTileShort(y: Int, x: Int, z: Int, buffer: Buffer) {
+        if (overlays[y][x][z].toInt() != 0) {
+            buffer.writeShort(overlayShapes[y][x][z] * 4 + (overlayOrientations[y][x][z].toInt() and 3) + 2)
+            buffer.writeShort(overlays[y][x][z].toInt())
+        }
+        if (tileFlags[y][x][z].toInt() != 0) {
+            buffer.writeShort(tileFlags[y][x][z] + 49)
+        }
+        if (underlays[y][x][z].toInt() != 0) {
+            buffer.writeShort(underlays[y][x][z] + 81)
+        }
+        if (manualTileHeight[y][x][z].toInt() == 1 || y == 0) {
+            buffer.writeShort(1)
+            if (y == 0) {
+                buffer.writeByte(-tileHeights[y][x][z] / 8)
+            } else {
+                buffer.writeByte(-(tileHeights[y][x][z] - tileHeights[y - 1][x][z]) / 8)
+            }
+        } else {
+            buffer.writeShort(0)
+        }
+    }
+
+    private fun saveTerrainTileByte(y: Int, x: Int, z: Int, buffer: Buffer) {
         if (overlays[y][x][z].toInt() != 0) {
             buffer.writeShort(overlayShapes[y][x][z] * 4 + (overlayOrientations[y][x][z].toInt() and 3) + 2)
             buffer.writeShort(overlays[y][x][z].toInt())

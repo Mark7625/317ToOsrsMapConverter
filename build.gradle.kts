@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.mark"
-version = "1.0"
+version = "2.0"
 
 repositories {
     mavenCentral()
@@ -16,6 +16,14 @@ dependencies {
     testImplementation(kotlin("test"))
     // https://mvnrepository.com/artifact/org.apache.commons/commons-compress
     implementation("org.apache.commons:commons-compress:1.22")
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation("com.google.code.gson:gson:2.10.1")
+    // https://mvnrepository.com/artifact/io.github.material-ui-swing/DarkStackOverflowTheme
+    implementation("io.github.material-ui-swing:DarkStackOverflowTheme:0.0.1-rc3")
+
+    implementation("com.github.weisj:darklaf-core:3.0.2")
+    // https://mvnrepository.com/artifact/de.schipplock.gui.swing/lafmanager
+    implementation("de.schipplock.gui.swing:lafmanager:0.0.1")
 
 }
 

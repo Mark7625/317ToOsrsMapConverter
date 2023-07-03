@@ -10,7 +10,7 @@ class MapConverter(
 
     var region : Region = Region()
 
-    fun loadMap() {
+    fun loadMapByte() {
         val regionX: Int = regionID shr 8 shl 6
         val regionY: Int = regionID and 0xFF shl 6
 
@@ -24,7 +24,24 @@ class MapConverter(
             }
         }
 
-        region.unpackTiles(terrainData, 0, 0, regionX, regionY)
+        region.unpackTilesByte(terrainData, 0, 0, regionX, regionY)
+    }
+
+    fun loadMapShort() {
+        val regionX: Int = regionID shr 8 shl 6
+        val regionY: Int = regionID and 0xFF shl 6
+
+        val terrainData: ByteArray = GZIPUtils.unzip(terrainFile.readBytes())
+
+        for (plane in 0..3) {
+            for (x in 0..63) {
+                for (y in 0..63) {
+                    region.tileFlags[plane][x][y] = 0
+                }
+            }
+        }
+
+        region.unpackTilesShort(terrainData, 0, 0, regionX, regionY)
     }
 
 
