@@ -1,8 +1,6 @@
 package com.mark
 
-import com.mark.map.MapConverter
 import com.mark.swing.JFilePicker
-import com.mark.utils.GZIPUtils
 import java.awt.Dimension
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -69,18 +67,17 @@ class NameConvertTab() : JPanel(), PropertyChangeListener {
             val fileID = file.nameWithoutExtension
 
             val regionID: Int = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
-            val generatedMapData = Application.afterShort[regionID]!!
-
+            
             val isLandScape = Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
 
             val fileType = file.extension
 
-            if (isLandScape) {
-                file.renameTo(File(inputPicker.selectedFilePath + "/" + generatedMapData.landOSRS + "." + fileType))
-            } else {
-                file.renameTo(File(inputPicker.selectedFilePath + "/" + generatedMapData.mapOSRS + "." + fileType))
-            }
+            val x = regionID shr 8 shl 6
+            val y = regionID and 255 shl 6
 
+            val name = "${if (isLandScape) "l" else "m"}${x}_${y}"
+
+            file.renameTo(File(inputPicker.selectedFilePath + "/" + name + "." + fileType))
 
             buttonStart.text = "Converting to names"
 

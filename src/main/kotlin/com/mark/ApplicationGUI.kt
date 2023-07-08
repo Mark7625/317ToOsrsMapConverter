@@ -135,6 +135,7 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
 
                 val mapFileID = if (isLandScape) generatedMapData.land317.toString() else generatedMapData.map317.toString()
 
+
                 val saveName = getSaveName(mapFileID,regionID,isLandScape)
 
                 if(isLandScape) {
@@ -171,8 +172,8 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
             if (nameSaving.selectedIndex == 0) {
                 return "${mapID}.${formatAppend}"
             }
-            val x = (regionID shr 8) and 0xFF
-            val y = regionID and 0xFF
+            val x = regionID shr 8 shl 6
+            val y = regionID and 255 shl 6
             return "${if (landscape) "l" else "m"}${x}_${y}.${formatAppend}"
         }
 
