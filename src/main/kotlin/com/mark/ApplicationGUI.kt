@@ -42,14 +42,14 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
         val leftPanel = JPanel()
 
         tabbedPane.addTab(
-            "Map Converter (Rev: 1-208)", null, ConvertTab(true),
-            "Converts Maps from Post208 to pre208 or pre208 to post 208"
+            "Map Converter (To Old Format)", null, ConvertTab(true),
+            "Converts Maps to old byte format"
         )
         tabbedPane.setMnemonicAt(0, KeyEvent.VK_1)
 
         tabbedPane.addTab(
-            "Map Converter (Rev: 208+)", null, ConvertTab(false),
-            "Converts to osrs naming (\"317 naming (34/35)\",\"OSRS(\\\"l34_35\\\"/)\")"
+            "Map Converter (To New Format)", null, ConvertTab(false),
+            "Converts to new short format"
         )
         tabbedPane.setMnemonicAt(1, KeyEvent.VK_2)
 
@@ -124,10 +124,10 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
                 val generatedMapData : MapDetails
 
                 if (beforeShort) {
-                    regionID = Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                    regionID = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
                     generatedMapData = Application.beforeShort[regionID]!!
                 } else {
-                    regionID = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                    regionID = Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
                     generatedMapData = Application.afterShort[regionID]!!
                 }
 
@@ -142,7 +142,7 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
 
                     val mapConverter = MapConverter(regionID,file)
                     val shouldGZip = format.selectedIndex == 0
-                    val bytes : ByteArray = if (beforeShort) {
+                    val bytes : ByteArray = if (!beforeShort) {
                         mapConverter.loadMapByte()
                         GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockShort(), shouldGZip)
                     } else {
