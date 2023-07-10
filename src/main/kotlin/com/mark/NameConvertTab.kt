@@ -67,13 +67,13 @@ class NameConvertTab() : JPanel(), PropertyChangeListener {
             val fileID = file.nameWithoutExtension
 
             val regionID: Int = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
-            
+
             val isLandScape = Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
 
             val fileType = file.extension
 
-            val x = regionID shr 8 shl 6
-            val y = regionID and 255 shl 6
+            val x = regionID shr 8
+            val y = regionID and 255
 
             val name = "${if (isLandScape) "l" else "m"}${x}_${y}"
 
