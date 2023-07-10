@@ -142,7 +142,7 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
 
                     val mapConverter = MapConverter(regionID,file)
                     val shouldGZip = format.selectedIndex == 0
-                    val bytes : ByteArray = if (!beforeShort) {
+                    val bytes : ByteArray = if (beforeShort) {
                         mapConverter.loadMapByte()
                         GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockShort(), shouldGZip)
                     } else {
@@ -172,8 +172,8 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
             if (nameSaving.selectedIndex == 0) {
                 return "${mapID}.${formatAppend}"
             }
-            val x = regionID shr 8 shl 6
-            val y = regionID and 255 shl 6
+            val x = regionID shr 8
+            val y = regionID and 255
             return "${if (landscape) "l" else "m"}${x}_${y}.${formatAppend}"
         }
 
