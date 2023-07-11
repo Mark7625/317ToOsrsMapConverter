@@ -96,77 +96,89 @@ class ApplicationGUI : JFrame("Map ID Converter (Mark7625)") {
          * handle click event of the Download button
          */
         fun startConverting(beforeShort : Boolean, panel : JPanel, progressBar : JProgressBar, outputPicker : JFilePicker, inputPicker : JFilePicker, buttonStart: JButton) {
-
-            if(outputPicker.selectedFilePath.isEmpty() || outputPicker.selectedFilePath.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "Input or Output has not been defined.", "Error", JOptionPane.WARNING_MESSAGE)
-                return
-            }
-
-            progressBar.value = 0
-            buttonStart.isEnabled = false
-            buttonStart.text = "Looking for Files..."
-
-            val gzFiles = Application.locateGzFiles(File(inputPicker.selectedFilePath))
-
-            val outputGZLoc = File(outputPicker.selectedFilePath + "/gz/")
-            if(!outputGZLoc.exists()) {
-                outputGZLoc.mkdirs()
-            }
-
-            progressBar.maximum = gzFiles.size
-
-            buttonStart.text = if (!beforeShort) "Converting to post208" else "Converting to pre208"
-
-            gzFiles.forEachIndexed { index, file ->
-                val fileID = file.nameWithoutExtension
-
-                val regionID: Int
-                val generatedMapData : MapDetails
-
-                if (beforeShort) {
-                    regionID = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
-                    generatedMapData = Application.beforeShort[regionID]!!
-                } else {
-                    regionID = Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
-                    generatedMapData = Application.afterShort[regionID]!!
+            try {
+                if(outputPicker.selectedFilePath.isEmpty() || outputPicker.selectedFilePath.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Input or Output has not been defined.", "Error", JOptionPane.WARNING_MESSAGE)
+                    return
                 }
 
-                val isLandScape = if (beforeShort) Application.beforeShort.filterValues { it.land317 == fileID.toInt() }.count() == 1 else  Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+                progressBar.value = 0
+                buttonStart.isEnabled = false
+                buttonStart.text = "Looking for Files..."
 
-                val mapFileID = if (isLandScape) generatedMapData.land317.toString() else generatedMapData.map317.toString()
+                val gzFiles = Application.locateGzFiles(File(inputPicker.selectedFilePath))
+
+                val outputGZLoc = File(outputPicker.selectedFilePath + "/gz/")
+                if(!outputGZLoc.exists()) {
+                    outputGZLoc.mkdirs()
+                }
+
+                progressBar.maximum = gzFiles.size
+
+                buttonStart.text = if (!beforeShort) "Converting to post208" else "Converting to pre208"
+
+                gzFiles.forEachIndexed { index, file ->
+                    val fileID = file.nameWithoutExtension
+
+                    val regionID: Int
+                    val generatedMapData : MapDetails
 
 
-                val saveName = getSaveName(mapFileID,regionID,isLandScape)
-
-                if(isLandScape) {
-
-                    val mapConverter = MapConverter(regionID,file)
-                    val shouldGZip = format.selectedIndex == 0
-                    val bytes : ByteArray = if (beforeShort) {
-                        mapConverter.loadMapByte()
-                        GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockShort(), shouldGZip)
+                    if (beforeShort) {
+                        regionID = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                        generatedMapData = Application.beforeShort[regionID]!!
                     } else {
-                        mapConverter.loadMapShort()
-                        GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockByte(), shouldGZip)
+                        regionID = if(Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.isEmpty()) {
+                            Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                        } else {
+                            Application.beforeShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+                        }
+
+                        generatedMapData = Application.afterShort[regionID]!!
                     }
-                    File(outputGZLoc, saveName).writeBytes(bytes)
-                } else {
-                    file.copyTo(File(outputGZLoc,saveName),true)
+
+                    val isLandScape = if (beforeShort) Application.beforeShort.filterValues { it.land317 == fileID.toInt() }.count() == 1 else  Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+
+                    val mapFileID = if (isLandScape) generatedMapData.land317.toString() else generatedMapData.map317.toString()
+
+
+                    val saveName = getSaveName(mapFileID,regionID,isLandScape)
+
+                    if(isLandScape) {
+
+                        val mapConverter = MapConverter(regionID,file)
+                        val shouldGZip = format.selectedIndex == 0
+                        val bytes : ByteArray = if (!beforeShort) {
+                            mapConverter.loadMapByte()
+                            GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockShort(), shouldGZip)
+                        } else {
+                            mapConverter.loadMapShort()
+                            GZIPUtils.gzipBytes(mapConverter.region.saveTerrainBlockByte(), shouldGZip)
+                        }
+                        File(outputGZLoc, saveName).writeBytes(bytes)
+                    } else {
+                        file.copyTo(File(outputGZLoc,saveName),true)
+                    }
+
+                    progressBar.string = "$index / ${gzFiles.size}"
+                    progressBar.value = index
+
                 }
 
-                progressBar.string = "$index / ${gzFiles.size}"
-                progressBar.value = index
-
+                progressBar.value = gzFiles.size + 1
+                progressBar.string = "Finished"
+                buttonStart.isEnabled = true
+                buttonStart.text = "Start"
+            }catch (e : Exception) {
+                e.printStackTrace()
+                progressBar.value = 0
+                progressBar.string = "Finished"
+                buttonStart.isEnabled = true
+                buttonStart.text = "Start"
             }
-
-            progressBar.value = gzFiles.size + 1
-            progressBar.string = "Finished"
-            buttonStart.isEnabled = true
-            buttonStart.text = "Start"
-
         }
 
-        fun getSaveName(mapID: String,regionID : Int, landscape : Boolean) : String {
+        private fun getSaveName(mapID: String, regionID : Int, landscape : Boolean) : String {
             val formatAppend = format.selectedItem!!.toString()
 
             if (nameSaving.selectedIndex == 0) {

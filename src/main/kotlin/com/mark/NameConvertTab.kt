@@ -63,12 +63,26 @@ class NameConvertTab() : JPanel(), PropertyChangeListener {
 
         progressBar.maximum = gzFiles.size
 
+        var oldNamesBefore = false
+
         gzFiles.forEachIndexed { index, file ->
             val fileID = file.nameWithoutExtension
 
-            val regionID: Int = Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.first()
+            val regionID = if (Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.isEmpty() || oldNamesBefore) {
+                oldNamesBefore = true
+                Application.beforeShort.filter { it.value.land317 == fileID.toInt() || it.value.map317 == fileID.toInt()  }.keys.first()
+            } else {
+                oldNamesBefore = false
+                Application.afterShort.filter { it.value.land317 == fileID.toInt() || it.value.map317 == fileID.toInt()  }.keys.first()
+            }
 
-            val isLandScape = Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+            val isLandScape = if (Application.afterShort.filter { (it.value.land317 == fileID.toInt()) || (it.value.map317 == fileID.toInt())  }.keys.isEmpty() || oldNamesBefore) {
+                oldNamesBefore = true
+                Application.beforeShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+            } else {
+                oldNamesBefore = false
+                Application.afterShort.filterValues { it.land317 == fileID.toInt() }.count() == 1
+            }
 
             val fileType = file.extension
 
